@@ -1,6 +1,9 @@
 ﻿using System.Diagnostics;
+using System.Text.RegularExpressions;
 
 using OpenCvSharp;
+
+using Range = OpenCvSharp.Range;
 
 /*
 On rappelle le fonctionnement de l’algorithme de detection de cercles :
@@ -25,11 +28,11 @@ Essayez de trouver une solution qui fonctionne pour des images variees (voir par
 pour des images avec ou sans bruit).
  */
 
+#region Methods
 void PrintImage(string name, Mat image)
 {
     try
     {
-
         // Show image
         _ = new Window(name, WindowFlags.GuiExpanded);
         Cv2.ImShow(name, image);
@@ -39,6 +42,67 @@ void PrintImage(string name, Mat image)
         Console.WriteLine("Error while printing image");
     }
 }
+
+void PrintMat(string name, Mat mat)
+{
+    try
+    {
+        Console.WriteLine($"{name} = ");
+        for (int i = 0; i < mat.Rows; i++)
+        {
+            string txt = "";
+            for (int j = 0; j < mat.Cols; j++)
+            {
+                var pixel = mat.At<byte>(i, j);
+
+                if (pixel > 0)
+                {
+                    txt += pixel + " ";
+                }
+            }
+            Console.WriteLine($"[{txt}]");
+        }
+    }
+    catch (Exception)
+    {
+        Console.WriteLine("Error while printing mat");
+    }
+}
+
+bool IsMax(Mat mat, Point point, int neighbors)
+{
+    bool isMax = true;
+
+    int neighborLeft = point.X - neighbors / 2;
+    int neighborRight = point.X + neighbors / 2;
+    int neighborTop = point.Y - neighbors / 2;
+    int neighborBottom = point.Y + neighbors / 2;
+
+    byte pixel = mat.At<byte>(point.Y, point.X);
+
+    for (int row = neighborTop; row < neighborBottom; row++)
+        for (int column = neighborLeft; column < neighborRight; column++)
+        {
+            if (row == point.Y && column == point.X)
+                continue;
+            if (row < 0 || column < 0)
+                continue;
+            if (row >= mat.Rows || column >= mat.Cols)
+                continue;
+
+            byte neighborPixel = mat.At<byte>(row, column);
+
+            if (neighborPixel > pixel)
+            {
+                isMax = false;
+                break;
+            }
+        }
+
+    return isMax;
+}
+#endregion Methods
+
 
 string imagePath = @"Resources\images\four.png";
 
@@ -66,67 +130,54 @@ Cv2.Threshold(sobelImage, thresholdImage, 100, 255, ThresholdTypes.Binary);
 PrintImage("thresholdImage", thresholdImage);
 
 // Create accumulator
-int width = thresholdImage.Width;
-int height = thresholdImage.Height;
-int radius = 100;
-int[,,] accumulator = new int[width, height, radius];
-for (int i = 0; i < width; i++)
-{
-    for (int j = 0; j < height; j++)
-    {
-        for (int k = 0; k < radius; k++)
-        {
-            accumulator[i, j, k] = 0;
-        }
-    }
-}
+Mat acc = new(image.Rows, image.Cols, MatType.CV_32SC1, 0);
 
-// Find circles
-for (int i = 0; i < width; i++)
-{
-    for (int j = 0; j < height; j++)
+// Calculate radius
+var maxDistance = Math.Sqrt(Math.Pow(thresholdImage.Rows, 2) + Math.Pow(thresholdImage.Cols, 2)) / 2;
+
+for (int row1 = 0; row1 < thresholdImage.Rows; row1++)
+    for (int column1 = 0; column1 < thresholdImage.Cols; column1++)
     {
-        if (thresholdImage.At<byte>(i, j) == 255)
-        {
-            for (int k = 0; k < radius; k++)
+        var pixel = thresholdImage.At<byte>(row1, column1);
+
+        if (pixel != 255)
+            continue;
+
+        for (int row2 = 0; row2 < thresholdImage.Rows; row2++)
+            for (int column2 = 0; column2 < thresholdImage.Cols; column2++)
             {
-                int a = i + k;
-                int b = j + k;
-                if (a < width && b < height)
+                var distance = Math.Sqrt(Math.Pow(row1 - row2, 2) + Math.Pow(column1 - column2, 2));
+
+                if (distance < maxDistance)
                 {
-                    accumulator[a, b, k]++;
+                    acc.At<int>(row2, column2) += 1;
                 }
             }
-        }
-    }
-}
 
-// Find max
-int max = 0;
-int maxI = 0;
-int maxJ = 0;
-int maxK = 0;
-for (int i = 0; i < width; i++)
-{
-    for (int j = 0; j < height; j++)
+    }
+
+// Print accumulator
+PrintMat("acc", acc);
+
+// Find max in 26 neighbors and draw circle on circleImage
+Mat circleImage = new();
+image.CopyTo(circleImage);
+
+int count = 0;
+for (int rowAcc = 0; rowAcc < acc.Rows; rowAcc++)
+    for (int columnAcc = 0; columnAcc < acc.Cols; columnAcc++)
     {
-        for (int k = 0; k < radius; k++)
+        // If pixel is max in 26 neighbors draw circle
+        if (IsMax(acc, new Point(columnAcc, rowAcc), 26))
         {
-            if (accumulator[i, j, k] > max)
-            {
-                max = accumulator[i, j, k];
-                maxI = i;
-                maxJ = j;
-                maxK = k;
-            }
+            Console.WriteLine($"Max at ({rowAcc}, {columnAcc}) = {acc.At<int>(rowAcc, columnAcc)}");
+            Cv2.Circle(circleImage, new Point(columnAcc, rowAcc), 1, Scalar.Red, 1);
+            count++;
         }
     }
-}
 
-// Draw circle
-Cv2.Circle(image, new Point(maxI, maxJ), maxK, Scalar.Red, 2);
+Console.WriteLine($"Count = {count} on total of {acc.Rows * acc.Cols}");
 
-PrintImage("image", image);
-
+PrintImage("circleImage", circleImage);
 
 Cv2.WaitKey(0);
