@@ -138,7 +138,7 @@ bool IsMax(Mat mat, Point point, int neighbors, out string log)
 #endregion Methods
 
 
-string imagePath = @"Resources\images\four.png";
+string imagePath = @"Resources\images\fourn.png";
 
 // Load image
 Mat image = Cv2.ImRead(imagePath);
@@ -153,7 +153,17 @@ PrintImage("blurredImage", blurredImage);
 
 // Sobel filter
 Mat sobelImage = new();
-Cv2.Sobel(blurredImage, sobelImage, MatType.CV_8UC1, 1, 1);
+//Cv2.Sobel(blurredImage, sobelImage, MatType.CV_8UC1, 1, 1);
+
+Mat blurredImage_gray = new();
+Cv2.CvtColor(blurredImage, blurredImage_gray, ColorConversionCodes.BGR2GRAY);
+
+Mat grad = new();
+
+//Cv2.Scharr(blurredImage_gray, grad, MatType.CV_16SC1, 1, 1);
+Cv2.Sobel(blurredImage_gray, grad, MatType.CV_64FC1, 1, 1, 3);
+
+Cv2.ConvertScaleAbs(grad, sobelImage);
 
 PrintImage("sobelImage", sobelImage);
 
