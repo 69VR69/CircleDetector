@@ -137,8 +137,15 @@ bool IsMax(Mat mat, Point point, int neighbors, out string log)
 }
 #endregion Methods
 
+List<string> images = new() {
+    @"Resources\images\coins.png", // 0
+    @"Resources\images\coins2.jpg", // 1
+    @"Resources\images\MoonCoin.png", // 2
+    @"Resources\images\four.png", // 3
+    @"Resources\images\fourn.png" // 4
+};
 
-string imagePath = @"Resources\images\fourn.png";
+string imagePath = images[1];
 
 // Load image
 Mat image = Cv2.ImRead(imagePath);
@@ -147,29 +154,36 @@ PrintImage("image", image);
 
 // Gaussian filter
 Mat blurredImage = new();
-Cv2.GaussianBlur(image, blurredImage, new Size(5, 5), 0.4, 0.4);
+Size size = new Size(image.Rows / 10, image.Cols / 10);
+if (size.Width % 2 == 0 || size.Width <= 0) size.Width++;
+if (size.Height % 2 == 0 || size.Height <= 0) size.Height++;
+Cv2.GaussianBlur(image, blurredImage, size, 1.4, 1.4);
 
 PrintImage("blurredImage", blurredImage);
 
 // Sobel filter
 Mat sobelImage = new();
-//Cv2.Sobel(blurredImage, sobelImage, MatType.CV_8UC1, 1, 1);
-
 Mat blurredImage_gray = new();
+
 Cv2.CvtColor(blurredImage, blurredImage_gray, ColorConversionCodes.BGR2GRAY);
 
-Mat grad = new();
+Mat gradientX = new();
+Mat gradientY = new();
 
 //Cv2.Scharr(blurredImage_gray, grad, MatType.CV_16SC1, 1, 1);
-Cv2.Sobel(blurredImage_gray, grad, MatType.CV_64FC1, 1, 1, 3);
+Cv2.Sobel(blurredImage_gray, gradientX, MatType.CV_64FC1, 1, 0, 1);
+Cv2.Sobel(blurredImage_gray, gradientY, MatType.CV_64FC1, 0, 1, 1);
 
-Cv2.ConvertScaleAbs(grad, sobelImage);
+Cv2.ConvertScaleAbs(gradientX, gradientX);
+Cv2.ConvertScaleAbs(gradientY, gradientY);
+
+Cv2.AddWeighted(gradientX, 0.5, gradientY, 0.5, 0, sobelImage);
 
 PrintImage("sobelImage", sobelImage);
 
 // Threshold
 Mat thresholdImage = new();
-Cv2.Threshold(sobelImage, thresholdImage, 20, 255, ThresholdTypes.Binary);
+Cv2.Threshold(sobelImage, thresholdImage, 15, 255, ThresholdTypes.Binary);
 
 PrintImage("thresholdImage", thresholdImage);
 
@@ -229,7 +243,15 @@ for (int rowAcc = 0; rowAcc < acc.Rows; rowAcc++)
             Console.WriteLine(maxLog);
 
             Console.WriteLine($"Max at ({rowAcc}, {columnAcc}) = {acc.At<byte>(rowAcc, columnAcc)}\n\n");
-            circleImage.Set(rowAcc, columnAcc, new Vec3b(253, 50, 197));
+            // Choose the color based on the value of the pixel by choosing in a green to red
+            Vec3b color = new()
+            {
+                Item0 = (byte)(255 - acc.At<byte>(rowAcc, columnAcc)),
+                Item1 = acc.At<byte>(rowAcc, columnAcc),
+                Item2 = 0
+            };
+
+            circleImage.Set(rowAcc, columnAcc, color /*new Vec3b(253, 50, 197)*/);
             count++;
         }
     }
