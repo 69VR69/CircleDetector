@@ -125,7 +125,7 @@ PrintImage("sobelImage", sobelImage);
 
 // Threshold
 Mat thresholdImage = new Mat();
-Cv2.Threshold(sobelImage, thresholdImage, 100, 255, ThresholdTypes.Binary);
+Cv2.Threshold(sobelImage, thresholdImage, 80, 255, ThresholdTypes.Binary);
 
 PrintImage("thresholdImage", thresholdImage);
 
@@ -171,7 +171,7 @@ for (int rowAcc = 0; rowAcc < acc.Rows; rowAcc++)
         if (IsMax(acc, new Point(columnAcc, rowAcc), 26))
         {
             Console.WriteLine($"Max at ({rowAcc}, {columnAcc}) = {acc.At<int>(rowAcc, columnAcc)}");
-            Cv2.Circle(circleImage, new Point(columnAcc, rowAcc), 1, Scalar.Red, 1);
+            Cv2.Line(circleImage, new Point(columnAcc, rowAcc), new Point(columnAcc, rowAcc), Scalar.Red, 1);
             count++;
         }
     }
