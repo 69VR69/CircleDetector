@@ -111,6 +111,9 @@ Mat image = Cv2.ImRead(imagePath);
 
 PrintImage("image", image);
 
+// Get start time
+var watch = Stopwatch.StartNew();
+
 // Gaussian filter
 Mat blurredImage = new Mat();
 Cv2.GaussianBlur(image, blurredImage, new Size(1, 1), 0);
@@ -176,7 +179,11 @@ for (int rowAcc = 0; rowAcc < acc.Rows; rowAcc++)
         }
     }
 
+// Stop timer
+watch.Stop();
+
 Console.WriteLine($"Count = {count} on total of {acc.Rows * acc.Cols}");
+Console.WriteLine($"Time = {watch.ElapsedMilliseconds} ms");
 
 PrintImage("circleImage", circleImage);
 
