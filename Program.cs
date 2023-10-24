@@ -5,29 +5,6 @@ using OpenCvSharp;
 
 using Range = OpenCvSharp.Range;
 
-/*
-On rappelle le fonctionnement de l’algorithme de detection de cercles :
-1. (optionnel) Filtrage Gaussien (en cas de bruit ou de details tres fins)
-2. Filtrage de Sobel, calcul de la magnitude de gradient Imag dans chaque pixel
-3. Tous les pixels dont la magnitude est au dessus d’une fraction t de la valeur maximale dans Imag
-sont consideres comme des pixels du contour. Note : visualisez l’image des contours pour etre surs
-que vous avez dedans les contours des objets recherches.
-4. Initialisez toutes les valeurs de l’accumulateur acc a 0.
-5. Pour chaque pixel de contour, considerez toutes les (r,c) possibles, calculez le rayon rad pour que
-le cercle situe en (r,c) passe par le pixel respectif, et incrementez dans l’accumulateur la case qui
-correspond a (r, c, rad).
-6. Identifiez dans l’accumulateur les maximas locaux - les cases avec des valeurs superieures aux 26
-cases voisines (car l’accumulateur est tridimensionnel).
-7. Selectionnez les N valeurs les plus grandes, et a partir des indices (i,j,k) recuperez les (r,c,rad)
-correspondants et visualisez les cercles en passant par OpenCV.
-Note 1 : les cercles plus grands recoivent plus de votes, donc il faudrait normaliser les valeurs de
-l’accumulateur pour ne pas privilegier les cercles grands.
-Note 2 : pour mettre un vote, on peut incrementer soit par 1, soit par la magnitude du gradient dans
-le pixel respectif etc.
-Essayez de trouver une solution qui fonctionne pour des images variees (voir par exemple Figure 1
-pour des images avec ou sans bruit).
- */
-
 #region Methods
 void PrintImage(string name, Mat image)
 {
@@ -137,6 +114,7 @@ bool IsMax(Mat mat, Point point, int neighbors, out string log)
 }
 #endregion Methods
 
+// List of images to test on
 List<string> images = new() {
     @"Resources\images\coins.png", // 0
     @"Resources\images\coins2.jpg", // 1
@@ -145,6 +123,7 @@ List<string> images = new() {
     @"Resources\images\fourn.png" // 4
 };
 
+// Choose image to test on
 string imagePath = images[1];
 
 // Load image
@@ -239,9 +218,8 @@ int count = 0;
 for (int rowAcc = 0; rowAcc < acc.Rows; rowAcc++)
     for (int columnAcc = 0; columnAcc < acc.Cols; columnAcc++)
     {
-        string maxLog;
         // If pixel is max in 26 neighbors draw circle
-        if (IsMax(acc, new Point(rowAcc, columnAcc), 26, out maxLog))
+        if (IsMax(acc, new Point(rowAcc, columnAcc), 26, out string maxLog))
         {
             Console.WriteLine(maxLog);
 
